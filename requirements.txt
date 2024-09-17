@@ -1,0 +1,5 @@
+numpy==1.23.5
+pandas==2.2.2
+scikit-learn==1.4.0
+matplotlib==3.9.2
+autogluon==1.1.1

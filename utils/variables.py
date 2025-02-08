@@ -1,0 +1,1 @@
+aaList = list("ACDEFGHIKLMNPQRSTVWY")

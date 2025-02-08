@@ -12,6 +12,7 @@ To set up the required environment for running the code with conda, navigate int
 cd pips-insilico
 conda create --name pips-insilico
 pip install -r requirements.txt
+source activate pips-insilico
 ```
 
 ## Example datasets

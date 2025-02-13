@@ -11,7 +11,7 @@ def get_split_metrics_summary(split_metrics, eval_metric_list, save_results=None
     if isinstance(eval_metric_list, str):
         eval_metric_list = [eval_metric_list]
     split_metrics_summary = []
-    for train_or_test in ['trainval', 'test']:
+    for train_or_test in ['train', 'test']:
         metrics_dict = {'train_or_test': train_or_test}
         metrics_filt = split_metrics[(split_metrics.train_or_test == train_or_test)]
         for eval_metric in eval_metric_list:
@@ -33,8 +33,8 @@ def plot_model_metrics_splits(split_metrics, split_by_col='split_label', eval_me
     split_label_list.sort()
     fig, ax = plt.subplots(figsize=(len(split_label_list)*3, 6))
     for i, split_label in enumerate(split_label_list):
-        for j, train_or_test in enumerate(['trainval', 'test']):
-            c = 'b' if train_or_test=='trainval' else 'orange'
+        for j, train_or_test in enumerate(['train', 'test']):
+            c = 'b' if train_or_test=='train' else 'orange'
             metrics_filt = split_metrics[(split_metrics[split_by_col]==split_label) & (split_metrics.train_or_test==train_or_test)].iloc[0].to_dict()
             metric_avg = metrics_filt[eval_metric+eval_metric_suffix]
             x = np.array([i+(-1)**(j+1)*barwidth/2])
@@ -61,8 +61,8 @@ def plot_model_metrics_splits(split_metrics, split_by_col='split_label', eval_me
 def plot_model_metrics_summary(split_metrics_summary, eval_metric='mcc', figsize=(8,6), barwidth=0.8, figtitle=None, savefig=None, plot_errors=True, annotate=False):
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(figsize=figsize)
-    for i, train_or_test in enumerate(['trainval', 'test']):
-        c = 'b' if train_or_test == 'trainval' else 'orange'
+    for i, train_or_test in enumerate(['train', 'test']):
+        c = 'b' if train_or_test == 'train' else 'orange'
         metrics_filt = split_metrics_summary[(split_metrics_summary.train_or_test==train_or_test)].iloc[0].to_dict()
         metric_avg = metrics_filt[f'{eval_metric}_avg']
         metric_std = metrics_filt[f'{eval_metric}_std']
@@ -77,7 +77,7 @@ def plot_model_metrics_summary(split_metrics_summary, eval_metric='mcc', figsize
     ax.set_ylim([0, 1])
     ax.set_ylabel(eval_metric, fontsize=20)
     ax.set_xticks(np.array([0,1]))
-    ax.set_xticklabels(['trainval', 'test'], fontsize=12)
+    ax.set_xticklabels(['train', 'test'], fontsize=12)
     if figtitle is not None:
         plt.suptitle(figtitle, fontsize=18)
     if savefig is not None:

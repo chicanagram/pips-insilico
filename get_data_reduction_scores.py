@@ -7,7 +7,9 @@ Created on Wed Aug  7 07:58:44 2024
 """
 import os
 import numpy as np
+import pandas as pd
 from utils.utils import fetch_sequences_from_fasta, write_sequence_to_fasta, get_ref_seq_idxs_aa_from_msa, compute_entropy
+from utils.variables import mapping_inv
 
 def ShanEntropy(msa_fname, output_fname, ref_seq_idxs, ref_seq):
     from data_reduction.alfa2cons import alfa2cons
@@ -20,7 +22,7 @@ def ShanEntropy(msa_fname, output_fname, ref_seq_idxs, ref_seq):
     csv_filt = csv_filt.rename(columns={'Position': 'PositionMSA'})
     csv_filt = csv_filt[['AA', 'RealPos', 'PositionMSA', 'shanID', 'shanMS']]
     # write dataframe to file
-    csv_filt.to_csv('./data/data_reduction/'+output_fname+'_ShanEntropy.csv')
+    csv_filt.to_csv('./data/data_reduction/'+output_fname+'_shanms.csv')
 
 def SIFT(msa_fname, output_fname, ref_seq_name):
     from data_reduction import access_sift_webserver
@@ -44,7 +46,7 @@ def SIFT(msa_fname, output_fname, ref_seq_name):
     probs_matrix = probs_matrix_norm * prob_col
     # get average sift score for each residue
     probs_mean = np.mean(probs_matrix_norm, axis=0)
-    csv.insert(2, 'sift_norm', list(probs_mean))
+    csv.insert(2, 'sift', list(probs_mean))
     # calculate entropy for each position
     ent = compute_entropy(probs_matrix)
     csv.insert(2, 'entropy', list(ent))
@@ -54,19 +56,49 @@ def SIFT(msa_fname, output_fname, ref_seq_name):
     os.remove(msa_path_rearranged)
     os.remove('./data/data_reduction/'+msa_fname+f'_sift_{ref_seq_name}.csv')
 
+def DistResSub(sce_fname, output_fname):
+    import yasara
+    print('Started YASARA')
+    # start yasara
+    yasara.info.mode = 'txt'
+    yasara.info.licenseshown = 0
+    yasara.Console('Off')
+    # load structure
+    yasara.CleanAll()
+    yasara.LoadSce('./data/sce/'+sce_fname)
+    print('Loaded docked structure')
+    yasara.Console('Off')
+    # get number of residues
+    num_res = yasara.CountRes('Protein')
+    print('# of residues:', num_res)
+    # iterate through each residue and get distance to substrate
+    res = []
+    for res_idx in range(1, num_res+1):
+        wildtype = yasara.NameRes(res_idx)
+        aa = mapping_inv[wildtype[0]]
+        selection1 = 'Res '+str(res_idx)
+        selection2 = 'Obj 2'
+        dist = yasara.GroupDistance(selection1, selection2)
+        res.append([aa, res_idx, dist])
+    res = pd.DataFrame(res, columns=['AA', 'RealPos', 'distance'])
+    res.to_csv('./data/data_reduction/'+output_fname+'_dist.csv')
 
 def main():
     msa_fname = 'GOh1052_msa'
     ref_seq_name = 'FGGALOX'
     ref_seq = None
     output_fname = 'GOh1052'
+    sce_fname = 'S152_1GOG_GOh1001b_postOpt'  # "S152_preOpt_1GOG_GOh1001b_preOpt.sce"
+
     if ref_seq is None:
         _, ref_seq, ref_seq_idxs = get_ref_seq_idxs_aa_from_msa('./data/msa/'+msa_fname+'.fasta', ref_seq_name)
 
     # run ShanEntropy
-    ShanEntropy(msa_fname, output_fname, ref_seq_idxs, ref_seq_name, ref_seq)
+    # ShanEntropy(msa_fname, output_fname, ref_seq_idxs, ref_seq_name, ref_seq)
     # run SIFT
-    SIFT(msa_fname, output_fname, ref_seq_name)
+    # SIFT(msa_fname, output_fname, ref_seq_name)
+    # run YASARA distance calculation
+    DistResSub(sce_fname, output_fname)
 
 if __name__ == "__main__":
     main()

@@ -3,3 +3,7 @@ pandas==2.2.2
 scikit-learn==1.4.0
 matplotlib==3.9.2
 autogluon==1.1.1
+biopython==1.85
+selenium==4.28.1
+webdriver-manager==4.0.2
+lxml==5.3.0

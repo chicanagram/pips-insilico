@@ -20,9 +20,22 @@ def calculate_sklearn_metrics(y, ypred, eval_metric_list):
         elif eval_metric=='accuracy':
             from sklearn.metrics import accuracy_score
             metric_vals.append(accuracy_score(y, ypred))
+        elif eval_metric in [f'precision_{i}' for i in [0,1,2,3,4,5]]:
+            from sklearn.metrics import precision_score
+            class_idx = int(eval_metric[-1])
+            precision_per_class = precision_score(y, ypred, average=None)
+            metric_vals.append(precision_per_class[class_idx])
         elif eval_metric == 'precision':
             from sklearn.metrics import precision_score
-            metric_vals.append(precision_score(y, ypred))
+            metric_vals.append(precision_score(y, ypred, average='micro'))
+        elif eval_metric in [f'recall_{i}' for i in [0, 1, 2, 3, 4, 5]]:
+            from sklearn.metrics import recall_score
+            class_idx = int(eval_metric[-1])
+            recall_per_class = recall_score(y, ypred, average=None)
+            metric_vals.append(recall_per_class[class_idx])
+        elif eval_metric == 'recall':
+            from sklearn.metrics import recall_score
+            metric_vals.append(recall_score(y, ypred, average='micro'))
     return metric_vals
 def get_leaderboard_metrics(data, label, predictor, leaderboard, metrics, train_or_test):
     y_pred_dict = {}
@@ -33,7 +46,7 @@ def get_leaderboard_metrics(data, label, predictor, leaderboard, metrics, train_
     for model in leaderboard.model.tolist():
         if train_or_test=='test':
             y_pred_dict[model] = predictor.predict(data.drop(columns=[label]), model=model)
-        elif train_or_test=='trainval':
+        elif train_or_test=='train':
             y_pred_dict[model] = predictor.get_oof_pred(train_data=data.drop(columns=[label]), model=model)
         # calculate metrics
         metric_vals = calculate_sklearn_metrics(y, y_pred_dict[model], metrics)
@@ -69,7 +82,7 @@ def autogluon_classifier(train_data, test_data, label, metrics, save_model=None,
         train_leaderboard = train_res['leaderboard']
 
         # get train leaderboard with all metrics
-        train_leaderboard, _ = get_leaderboard_metrics(train_data, label, predictor, train_leaderboard[['model', 'score_val']].copy(), metrics, 'trainval')
+        train_leaderboard, _ = get_leaderboard_metrics(train_data, label, predictor, train_leaderboard[['model', 'score_val']].copy(), metrics, 'train')
         train_leaderboard_filt = train_leaderboard.copy()
         for model_to_exclude in excluded_model_types:
             train_leaderboard_filt = train_leaderboard_filt[~train_leaderboard_filt.model.str.contains(model_to_exclude)]
@@ -99,7 +112,7 @@ def autogluon_classifier(train_data, test_data, label, metrics, save_model=None,
 
     res_cols = ['model'] + metrics
     res = {
-        'trainval': train_leaderboard_filt[[c for c in res_cols if c in train_leaderboard_filt]],
+        'train': train_leaderboard_filt[[c for c in res_cols if c in train_leaderboard_filt]],
         'test': test_leaderboard_filt[[c for c in res_cols if c in test_leaderboard_filt]] if test_data is not None else None
         }
     return predictor, y_pred, res

@@ -1,0 +1,3 @@
+,train_or_test,mcc_avg,mcc_std,accuracy_avg,accuracy_std
+0,train,0.614,0.008,0.75,0.005
+1,test,0.611,0.022,0.747,0.016

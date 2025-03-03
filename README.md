@@ -111,3 +111,12 @@ Installation of the required software dependencies is outlined in Section C. Exa
 ```
 python get_binding_stability_agg_features.py
 ```
+
+## H. Feature importances for autogluon models
+Finally, feature importances for the multimodal models may be obtained using Autogluon's built in module by running: 
+```
+python get_feature_importance.py
+```
+The model analysed may be specified by modify8ing the **'model_name'** variable the script. 
+It is currently set to output feature importances for the 'WeightedEnsemble_L3' model saved in the **data > trained_models > GOh1052** subdirectory, the model trained with the best performance. 
+

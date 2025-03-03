@@ -2,36 +2,9 @@ import yasara
 import numpy as np
 import os
 if os.path.basename(os.getcwd()) != 'feature_extraction': os.chdir('./feature_extraction/')
-from utils.utils import aaList, mkDir, opsys, split_mutation, get_mutstr, findProcess, exit_program, save_dict_as_csv, combine_csv_files
+from utils.utils import aaList, mkDir, opsys, get_mutation_list_from_inputfile, split_mutation, get_mutstr, findProcess, exit_program, save_dict_as_csv, combine_csv_files
 if opsys == 'Windows': yasara_process_name = 'YASARA.exe'
 else: yasara_process_name = 'yasara'
-
-
-def get_res_to_mutate_from_inputfile(col, input_fname, input_dir):
-    res_to_mutate = []
-    if input_fname is not None:
-        import pandas as pd
-        # get positions to mutate from input file
-        df = pd.read_csv(input_dir + input_fname)
-        res_to_mutate = df[col].dropna().tolist()
-    return res_to_mutate
-
-def get_mutations_list(res_to_mutate, aaList=aaList):
-    # check if amino acid to mutate to is already specified
-    if res_to_mutate[0][-1] in aaList:
-        mutations_list = res_to_mutate
-    # else specify all the possible mutations to evaluate
-    else:
-        mutations_list = []
-        for wt in res_to_mutate:
-            wtAA = wt[0]  # Get the first character of the sequence
-            for aa in aaList:
-                if aa != wtAA:
-                    mt = wt + aa
-                    mutations_list.append(mt)
-    print(len(mutations_list), mutations_list)
-    return mutations_list
-
 
 def set_up_sce_for_minimization(mutation, move, mvdist, mvdrug, continue_processing=True):
     # allow mutated positions to move
@@ -86,7 +59,7 @@ def mutate_residue(
     ligname = lig
     struct = struct_fname.split("_")[2]
     struct_fpath = struct_dir + struct_fname + '.sce'
-    log_fname = 'DDG_' + struct
+    log_fname = 'DDGbinding_' + struct
     log_fpath = output_dir + log_fname
     element_list = ['Rtr', 'Lgd', 'Cpx']
     setname = '{0}_{1}_{2}_{3}_rs{4}_{5}_d{6}_md{7}_s{8}_c{9}_r{10}'.format(ligname, struct, mutant, ff,
@@ -235,7 +208,6 @@ def mutate_residue(
             yasara.Sim('Off')
 
     if continue_processing:
-        # DDG
         # Get average and standard deviation for energies calculated
         for f in energy_features_list:
             res_avg[f] = round(np.mean(np.array(res[f])), 4)
@@ -246,7 +218,7 @@ def mutate_residue(
 
         # save average results as csv
         csv_txt_avg, log_fpath_avg, write_mode = save_dict_as_csv(res_avg, res_avg_cols, log_fpath)
-        print('Saved AVG results for ' + struct + mutant + ' to CSV (mode=' + write_mode + ').')
+        print('Saved AVG results for ' + struct + mutant + ' to CSV (mode=' + write_mode + '):', log_fpath_avg)
 
         # save all results as csv
         res.update({'struct': [struct] * nrep, 'mutant': [mutant] * nrep, 'ligname': [ligname] * nrep,
@@ -256,7 +228,7 @@ def mutate_residue(
                     'mvdist': [mvdist] * nrep, 'mvdrug': [mvdrug] * nrep, 'ff': [ff] * nrep,
                     'counterions': [cntions] * nrep})
         csv_txt_avg, log_fpath_full, write_mode = save_dict_as_csv(res, res_all_cols, log_fpath, csv_suffix='_FULL')
-        print('Saved FULL results for ' + struct + mutant + ' to CSV (mode=' + write_mode + ').')
+        print('Saved FULL results for ' + struct + mutant + ' to CSV (mode=' + write_mode + '):', log_fpath_full)
 
     return log_fpath_avg, log_fpath_full
 
@@ -267,35 +239,27 @@ def get_yasara_binding_features():
     input_dir = '../data/feature_extraction/Input/'
     struct_dir = input_dir
     output_dir = '../data/feature_extraction/'
-    input_fname = 'HTP_DomainPos_Final.csv'
-    input_col = 'Domain III'
-    output_fname = 'DDGbinding_GOh1052-DomainIIImut_S82'
-    struct_to_mutate_dict = {
-        'S152_1GOG_GOh1001b_postOpt': get_res_to_mutate_from_inputfile(input_col, input_fname, input_dir)
-    }
+    input_fname = 'GOh1052_mutPos_DomainIII.txt'
+    struct_fname = 'S152_1GOG_GOh1001b_postOpt'
     mkDir('postOpt', output_dir)
+
+    mutations, res_mut_dict = get_mutation_list_from_inputfile(input_fname, input_dir)
+    mutations = mutations[:5]
+    print('# of positions to mutate:', len(res_mut_dict), list(res_mut_dict.keys()))
+
     proc_num = 0
-    log_fpath_list = []
-    log_fpath_list_FULL = []
-    for struct_fname, res_to_mutate in struct_to_mutate_dict.items():
-        mutations_list = get_mutations_list(res_to_mutate, aaList=aaList)
-        for i, mutation in enumerate(mutations_list):
-            mutstr, mutation = get_mutstr(mutation)
-            log_fpath_avg, log_fpath_full = mutate_residue(mutation, struct_fname, struct_dir, output_dir,
-                                                           move='!backbone', minimize_energy=True, resetSce=False, nrep=nrep)
-            if log_fpath_avg not in log_fpath_list:
-                log_fpath_list.append(log_fpath_avg)
-            if log_fpath_full not in log_fpath_list_FULL:
-                log_fpath_list_FULL.append(log_fpath_full)
-            proc_num += 1
+    for i, mutation in enumerate(mutations):
+        mutstr, mutation = get_mutstr(mutation)
+        log_fpath_avg, log_fpath_full = mutate_residue(mutation, struct_fname, struct_dir, output_dir, move='!backbone', minimize_energy=True, resetSce=False, nrep=nrep)
+        proc_num += 1
     yasara_pid = findProcess(yasara_process_name)[-1]
     exit_program(yasara_pid)
 
-    # combine files spawned
-    _ = combine_csv_files(log_fpath_list, output_dir, output_fname)
-    print('Saved all AVG results as CSV:' + output_dir + output_fname + '.csv')
-    _ = combine_csv_files(log_fpath_list_FULL, output_dir, output_fname + '_FULL')
-    print('Saved all FULL results as CSV:' + output_dir + output_fname + '_FULL' + '.csv')
+    # # combine files spawned
+    # _ = combine_csv_files(log_fpath_list, output_dir, output_fname)
+    # print('Saved all AVG results as CSV:' + output_dir + output_fname + '.csv')
+    # _ = combine_csv_files(log_fpath_list_FULL, output_dir, output_fname + '_FULL')
+    # print('Saved all FULL results as CSV:' + output_dir + output_fname + '_FULL' + '.csv')
 
-if __name__ == "__main__":  # confirms that the code is under main function
+if __name__ == "__main__":
     get_yasara_binding_features()

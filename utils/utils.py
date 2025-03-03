@@ -233,7 +233,29 @@ def get_mutations(wildtype_list):
                 mutations.append(mt)
     print('mutants:', mutations)
     return mutations
-
+def get_mutation_list_from_inputfile(input_fname, input_dir):
+    # get mutations
+    # input is a list of positions to mutate
+    res_mut_dict = {}
+    with open(input_dir + input_fname) as f:
+        mutations = [mut.replace('\n','') for mut in f.readlines()]
+        # only WT positions specified, not mutations
+        if mutations[0][-1].isdigit():
+            wildtype_list = mutations.copy()
+            # mutate to all possible residues, if not specified
+            for wt in wildtype_list:
+                res_mut_dict[wt] = [wt + aa for aa in aaList if wt[0] != aa]
+            mutations = [item for sublist in list(res_mut_dict.values()) for item in sublist]
+        # both WT and MT specified
+        elif mutations[0][-1].isalpha():
+            wildtype_list = []
+            for mut in mutations:
+                wt = mut[:-1]
+                if wt not in wildtype_list:
+                    wildtype_list.append(wt)
+                    res_mut_dict[wt] = []
+                res_mut_dict[wt].append(mut)
+    return mutations,  res_mut_dict
 def fetch_sequences_from_fasta(sequence_fpath):
     from Bio import SeqIO
     sequence_names = []

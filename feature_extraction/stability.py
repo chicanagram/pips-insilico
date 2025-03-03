@@ -4,9 +4,10 @@ import yasara
 from yasara import foldx_abspath
 import os
 if os.path.basename(os.getcwd()) != 'feature_extraction': os.chdir('./feature_extraction/')
-from utils.utils import aaList, opsys, mkDir, split_mutation, get_mutstr, findProcess, exit_program
+from utils.utils import opsys, mkDir, get_mutation_list_from_inputfile, split_mutation, get_mutstr, findProcess, exit_program
 if opsys == 'Windows': yasara_process_name = 'YASARA.exe'
 else: yasara_process_name = 'yasara'
+
 
 
 def yasara_mutate_residue(
@@ -215,7 +216,7 @@ def run_stability_pipeline(mutation, input_pdb_fname, pdb_dir, swapRes_dir, repa
     print('Finished running foldxRepair on '+mutstr)
 
     ## RUN FOLDX BUILD ##
-    foldxBuild(mutation, foldx_build_inputPDB.strip('_Repair.pdb'), os.path.abspath(Build_path), os.path.abspath(Repair_path), foldx_abspath, receptor_molname)
+    foldxBuild(mutation, foldx_build_inputPDB.replace('_Repair.pdb',''), os.path.abspath(Build_path), os.path.abspath(Repair_path), foldx_abspath, receptor_molname)
     print('Finished running foldxBuild on '+mutstr)
 
 
@@ -226,7 +227,7 @@ def get_yasara_foldx_stability_features():
     output_dir = '../data/feature_extraction/'
     input_fname = 'GOh1052_mutPos_DomainIII.txt'
     input_pdb_fname = 'YASARA_2EIE_GOh1052.pdb'
-    output_fname = 'DDGstability_GOh1052-DomainIIImut.csv'
+    output_fname = 'DDGstability_GOh1052.csv'
     log_fname = input_pdb_fname.strip('.pdb')
     swapRes_dir = output_dir + 'SwapRes/'
     repair_dir = output_dir + 'Repair/'
@@ -235,31 +236,11 @@ def get_yasara_foldx_stability_features():
     receptor_molname = 'A'
 
     # get mutations
-    # input is a list of positions to mutate
-    res_mut_dict = {}
-    if input_fname.find('.txt')>-1:
-        with open(input_dir + input_fname) as f:
-            mutations = [mut.replace('\n','') for mut in f.readlines()]
-            # only WT positions specified, not mutations
-            if mutations[0][-1].isdigit():
-                wildtype_list = mutations.copy()
-                # mutate to all possible residues, if not specified
-                for wt in wildtype_list:
-                    res_mut_dict[wt] = [wt + aa for aa in aaList if wt[0] != aa]
-                mutations = [item for sublist in list(res_mut_dict.values()) for item in sublist]
-            # both WT and MT specified
-            elif mutations[0][-1].isalpha():
-                wildtype_list = []
-                for mut in mutations:
-                    wt = mut[:-1]
-                    if wt not in wildtype_list:
-                        wildtype_list.append(wt)
-                        res_mut_dict[wt] = []
-                    res_mut_dict[wt].append(mut)
-
-    # mutations = mutations[:4]
+    mutations, res_mut_dict = get_mutation_list_from_inputfile(input_fname, input_dir)
+    # mutations = []
+    print('# of positions to mutate:', len(res_mut_dict), list(res_mut_dict.keys()))
     print('# of mutations:', len(mutations), mutations)
-    print('# of positions to mutate:', len(wildtype_list), wildtype_list)
+
 
     ##############################
     ## RUN STABILITY PROCESSING ##
@@ -280,7 +261,7 @@ def get_yasara_foldx_stability_features():
                       'entropy mainchain', 'sloop_entropy', 'mloop_entropy', 'cis_bond', 'torsional clash',
                       'backbone clash', 'helix dipole', 'water bridge', 'disulfide', 'electrostatic kon',
                       'partial covalent bonds', 'energy Ionisation', 'Entropy Complex']
-    cols = ['Mutation', 'DDG', 'DDG_foldx'] + [col+'_MT' for col in stability_cols] + [col+'_WT' for col in stability_cols]
+    cols = ['Mutation', 'DDG', 'DDG_foldx'] + [col+'_WT' for col in stability_cols] + [col+'_MT' for col in stability_cols]
 
     mutations_list = []
     DDG_foldx_list = []
@@ -313,8 +294,8 @@ def get_yasara_foldx_stability_features():
                     print(name, 'DDG:', DDG_list[-1])
 
     txt_all_list = [','.join(cols)]
-    for mut, DDG, DDG_foldx, mt_features, wt_features in zip(mutations_list, DDG_list, DDG_foldx_list, mt_features_list, wt_features_list):
-        txt_all_list.append(','.join(list(map(str, [mut, DDG, DDG_foldx]+mt_features+wt_features))))
+    for mut, DDG, DDG_foldx, wt_features, mt_features in zip(mutations_list, DDG_list, DDG_foldx_list, wt_features_list, mt_features_list):
+        txt_all_list.append(','.join(list(map(str, [mut, DDG, DDG_foldx]+wt_features+mt_features))))
 
     if os.path.exists(output_dir + output_fname + '.csv'):
         write_mode = 'a'

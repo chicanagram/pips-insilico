@@ -14,7 +14,7 @@ conda create --name pips-insilico
 pip install -r requirements.txt
 source activate pips-insilico
 ```
-## B. Example datasets
+## B. Dataset
 The GOh1052 mutagenesis dataset is provided as an example at the location: 
 ```
 data > ml_prediction > Input > GOh1052.csv
@@ -67,7 +67,7 @@ Results will be logged in the folder: **data > ml_prediction > Output**.
 
 The dataset name and location can be set from commandline in a similar way as for the train.py script. 
 
-## E. Perform k-fold train/test cross-validation on full dataset
+## E. Perform train/test cross-validation on random splits
 ### Full dataset
 To perform k-fold cross validation, run the command: 
 ```
@@ -107,7 +107,7 @@ python get_data_reduction_scores.py
 
 ## Obtain binding, stability and aggregation features for multimodal ML prediction
 Code is provided in the **feature_extraction** subdirectory to obtain the binding, stability and aggregation features using YASARA, FoldX, Waltz and Tango respectively.
-Installation of the required software dependencies is outlined in Section C. 
+Installation of the required software dependencies is outlined in Section C. Example can be found in the **data > feature_extraction** subfolder showing outputs from running the YASARA and FoldX feature extraction pipelines on the first 5 mutants (sequentially) of GOh1052, as well as Tango and Waltz on the full set of mutants. 
 ```
 python get_binding_stability_agg_features.py
 ```

@@ -97,15 +97,15 @@ python train_test_random.py --filt-by sift --filt-sift 0.20,0.60
 ```
 whereby the upper and lower bound thresholds are specified, separated by a comma. 
 
-## Obtain data reduction scores
+## F. Obtain SIFT, Shannon Entropy & distance scores to perform retrospective data reduction
 Code is provided in the **data_reduction** subdirectory to obtain the normalized SIFT, ShanMS and distance scores. To obtain SIFT and ShanMS scores, the relevant MSA needs to be added to the subfolder data > msa. Here, the file 'GOh1052_msa.fasta' is used, and the first sequence is the reference sequence. 
-Obtaining of the SIFT output from the webserver at https://sift.bii.a-star.edu.sg/ has been automated. To obtain the distance scores, we use YASARA, although the free version should suffice for this particular calculation.
+Obtaining of the SIFT output from the webserver at https://sift.bii.a-star.edu.sg/ has been automated. To obtain the distance scores, we use YASARA -- the free version should suffice for this particular calculation.
 To obtain all the scores used for data reduction, run:
 ```
 python get_data_reduction_scores.py
 ```
 
-## Obtain binding, stability and aggregation features for multimodal ML prediction
+## G. Obtain binding, stability and aggregation features for multimodal ML prediction
 Code is provided in the **feature_extraction** subdirectory to obtain the binding, stability and aggregation features using YASARA, FoldX, Waltz and Tango respectively.
 Installation of the required software dependencies is outlined in Section C. Example can be found in the **data > feature_extraction** subfolder showing outputs from running the YASARA and FoldX feature extraction pipelines on the first 5 mutants (sequentially) of GOh1052, as well as Tango and Waltz on the full set of mutants. 
 ```

@@ -17,10 +17,13 @@
 # IMPORTANT: Copy this module to a place where Python can find
 # it, e.g. the directory where you keep your own Python modules.
 # If you move YASARA somewhere else, please adapt the path below:
-import sys,os
+
 import platform
 opsys = platform.system()
 yasaradir = '/Applications/YASARA.app/Contents/yasara/'
+foldx_abspath = yasaradir + '/foldx_2025/foldx_20251231_mac'
+
+import sys,os
 sys.path.append(os.path.join(yasaradir,'pym'))
 sys.path.append(os.path.join(yasaradir,'plg'))
 from yasaramodule import *

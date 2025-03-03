@@ -27,7 +27,7 @@ def parseArgs():
         # num_stack_levels
         parser.add_argument('--num_stack_levels', default=1, type=int, help='Number of levels of model stacking')
         # filt_by
-        parser.add_argument('--filt_by', default='', type=str, help='Filter by ShanMS score')
+        parser.add_argument('--filt_by', default='shanMS', type=str, help='Filter by SIFT, ShanMS, or distance score')
         # filt_shanms
         parser.add_argument('--filt_shanms', default='0.5,1.5', type=str, help='Filter by ShanMS score')
         # filt_sift
@@ -35,7 +35,7 @@ def parseArgs():
         # filt_dist
         parser.add_argument('--filt_dist', default='20,50', type=str, help='Filter by distance to substrate')
         # save_model
-        parser.add_argument('-save_model', default=True, type=bool, help='Folder name for saving the trained model')
+        parser.add_argument('-save_model', default=False, type=bool, help='Folder name for saving the trained model')
         return parser.parse_args()
     except:
         print("An exception occurred with argument parsing. Check your provided options.")
@@ -44,7 +44,8 @@ def parseArgs():
 def main():
 
     import pandas as pd
-    import matplotlib.pyplot as plt
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', 1000)
     from sklearn.model_selection import train_test_split
     from autogluon.tabular import TabularDataset
     from ml_prediction.model_variables import featuresets
@@ -106,9 +107,12 @@ def main():
                 filt_thres = [float(v) for v in args.filt_shanms.split(',')]
             elif filt_by == 'distance':
                 filt_thres = [float(v) for v in args.filt_dist.split(',')]
-            XY_train = filter_by_score(XY_train, filt_by, filt_thres, dataset_fbase_0)
+            XY_train, _ = filter_by_score(XY_train, filt_by, filt_thres, dataset_fbase_0)
+            # XY_test = pd.concat([XY_test,XY_test_append], axis=0)
 
         # convert to autogluon tabular dataset
+        print('Train size:', len(XY_train))
+        print('Test size:', len(XY_test))
         train_data = TabularDataset(XY_train)
         test_data = TabularDataset(XY_test) if XY_test is not None else None
 

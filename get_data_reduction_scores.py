@@ -8,10 +8,15 @@ Created on Wed Aug  7 07:58:44 2024
 import os
 import numpy as np
 import pandas as pd
-from utils.utils import fetch_sequences_from_fasta, write_sequence_to_fasta, get_ref_seq_idxs_aa_from_msa, compute_entropy
-from utils.variables import mapping_inv
+from utils.utils import mapping_inv, fetch_sequences_from_fasta, write_sequence_to_fasta, get_ref_seq_idxs_aa_from_msa, compute_entropy
 
-def ShanEntropy(msa_fname, output_fname, ref_seq_idxs, ref_seq):
+def insert_position_col_offset(df, offset, pos_col='RealPos'):
+    pos = df[pos_col].to_numpy()
+    pos_woffset = pos + offset
+    df.insert(0,'Position', pos_woffset)
+    return df
+
+def ShanEntropy(msa_fname, output_fname, ref_seq_idxs, ref_seq, position_offset=None):
     from data_reduction.alfa2cons import alfa2cons
     csv = alfa2cons('./data/msa/'+msa_fname+'.fasta', './data/data_reduction/'+output_fname+'.csv', save_csv=False)
     csv_filt = csv[csv['Position'].isin(ref_seq_idxs)].copy()
@@ -21,10 +26,12 @@ def ShanEntropy(msa_fname, output_fname, ref_seq_idxs, ref_seq):
     csv_filt['RealPos'] = list(np.arange(len(ref_seq_parsed)) + 1)
     csv_filt = csv_filt.rename(columns={'Position': 'PositionMSA'})
     csv_filt = csv_filt[['AA', 'RealPos', 'PositionMSA', 'shanID', 'shanMS']]
+    if position_offset is not None:
+        csv_filt = insert_position_col_offset(csv_filt, position_offset)
     # write dataframe to file
     csv_filt.to_csv('./data/data_reduction/'+output_fname+'_shanms.csv')
 
-def SIFT(msa_fname, output_fname, ref_seq_name):
+def SIFT(msa_fname, output_fname, ref_seq_name, position_offset=None):
     from data_reduction import access_sift_webserver
     msa_path = './data/msa/'+msa_fname+'.fasta'
     msa_seqs, msa_names, _ = fetch_sequences_from_fasta(msa_path)
@@ -36,7 +43,7 @@ def SIFT(msa_fname, output_fname, ref_seq_name):
     write_sequence_to_fasta(msa_seqs_rearranged, msa_names_rearranged, msa_fname+f'_{ref_seq_name}', './data/msa/')
     csv = access_sift_webserver.main(
       {'-a': os.path.abspath(msa_path_rearranged),
-       '--fname': './data/data_reduction/'+msa_fname+f'_sift_{ref_seq_name}.csv'
+       '--fname': './data/data_reduction/'+msa_fname+f'_sift.csv'
        }
     )
     # get probabilities pre-normalization
@@ -52,11 +59,13 @@ def SIFT(msa_fname, output_fname, ref_seq_name):
     csv.insert(2, 'entropy', list(ent))
     # write dataframe to file
     csv = csv.rename(columns={'pos': 'RealPos', 'wt': 'AA'})
+    if position_offset is not None:
+        csv = insert_position_col_offset(csv, position_offset)
     csv.to_csv('./data/data_reduction/'+output_fname+'_sift.csv')
     os.remove(msa_path_rearranged)
-    os.remove('./data/data_reduction/'+msa_fname+f'_sift_{ref_seq_name}.csv')
+    os.remove('./data/data_reduction/'+msa_fname+f'_sift.csv')
 
-def DistResSub(sce_fname, output_fname):
+def DistResSub(sce_fname, output_fname, position_offset=None):
     import yasara
     print('Started YASARA')
     # start yasara
@@ -81,7 +90,9 @@ def DistResSub(sce_fname, output_fname):
         dist = yasara.GroupDistance(selection1, selection2)
         res.append([aa, res_idx, dist])
     res = pd.DataFrame(res, columns=['AA', 'RealPos', 'distance'])
-    res.to_csv('./data/data_reduction/'+output_fname+'_dist.csv')
+    if position_offset is not None:
+        res = insert_position_col_offset(res, position_offset)
+    res.to_csv('./data/data_reduction/'+output_fname+'_distance.csv')
 
 def main():
     msa_fname = 'GOh1052_msa'
@@ -89,16 +100,17 @@ def main():
     ref_seq = None
     output_fname = 'GOh1052'
     sce_fname = 'S152_1GOG_GOh1001b_postOpt'  # "S152_preOpt_1GOG_GOh1001b_preOpt.sce"
+    position_offset = 23 # 0
 
     if ref_seq is None:
         _, ref_seq, ref_seq_idxs = get_ref_seq_idxs_aa_from_msa('./data/msa/'+msa_fname+'.fasta', ref_seq_name)
 
     # run ShanEntropy
-    # ShanEntropy(msa_fname, output_fname, ref_seq_idxs, ref_seq_name, ref_seq)
+    ShanEntropy(msa_fname, output_fname, ref_seq_idxs, ref_seq, position_offset)
     # run SIFT
-    # SIFT(msa_fname, output_fname, ref_seq_name)
+    SIFT(msa_fname, output_fname, ref_seq_name, position_offset)
     # run YASARA distance calculation
-    DistResSub(sce_fname, output_fname)
+    DistResSub(sce_fname, output_fname, position_offset)
 
 if __name__ == "__main__":
     main()

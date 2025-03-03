@@ -8,22 +8,17 @@ Created on Wed Nov  9 19:38:58 2022
 import pandas as pd
 import numpy as np
 import os, sys, shutil
+if os.path.basename(os.getcwd()) != 'feature_extraction': os.chdir('./feature_extraction/')
 import subprocess
-from variables import address_dict, subfolders
-from utils import fetch_sequences_from_fasta, write_sequence_to_fasta, split_wildtype, get_mutations, \
-    get_mutated_sequence
-
-sequences_subfolder, aggregation_subfolder = subfolders['sequences'], subfolders['aggregation']
-
+from utils.utils import fetch_sequences_from_fasta, write_sequence_to_fasta, get_mutations, get_mutated_sequence
 
 def AggWaltz(mutations, seq_base, seq_name, inPath, outPath, output_csv_fname):
-    input_dir_waltz = inPath + 'waltz/'
-    waltz_path = "./aggregation/waltz616seb_nmeth.pl"
+    waltz_path = "aggregation/Waltz.pl"
 
     # generate sequence of mutants based on seq_base
     if mutations is not None:
         mutations_list, seq_name_list, sequence_list, fasta_list = get_mutated_sequence(seq_base, mutations, seq_name,
-                                                                                        write_to_fasta=input_dir_waltz)
+                                                                                        write_to_fasta=inPath)
     else:
         if isinstance(seq_name, str):
             seq_name_list = [seq_name]
@@ -34,7 +29,7 @@ def AggWaltz(mutations, seq_base, seq_name, inPath, outPath, output_csv_fname):
             # generate fasta file for each sequence
             fasta_list = []
             for sequence, seq_name in zip(sequence_list, seq_name_list):
-                fasta_file = write_sequence_to_fasta(sequence, seq_name, seq_name, input_dir_waltz)
+                fasta_file = write_sequence_to_fasta(sequence, seq_name, seq_name, inPath)
                 fasta_list.append(fasta_file)
 
     # deduplicate sequences
@@ -103,7 +98,7 @@ def AggWaltz(mutations, seq_base, seq_name, inPath, outPath, output_csv_fname):
     df_ref = df_agg[df_agg['is_ref']].drop(columns='is_ref')
     df_agg = df_agg.drop(columns='is_ref')
     if len(df_ref) > 0:
-        df_agg[[col + '_vs_ref' for col in df_agg_cols[1:]]] = df_agg.iloc[:, 1:] - df_ref.iloc[:, 1:]
+        df_agg[[col + '_vs_ref' for col in df_agg_cols[1:]]] = df_agg.iloc[:, 1:].to_numpy() - df_ref.iloc[0, 1:].to_numpy().reshape(1,-1)
 
     final_path = os.path.join(outPath, f"{output_csv_fname}_waltz.csv")
     df_agg.to_csv(final_path, index=False)
@@ -124,7 +119,7 @@ def AggTango(mutations, seq_base, seq_name, inPath, outPath, output_csv_fname):
     encoding = sys.getdefaultencoding()
     cwd = os.getcwd()
     print('Current working directory:', cwd)
-    tango_path = 'C:/Mac/Home/Documents/projects/PIPS/PIPS-tools/tools/aggregation/Tango.exe'
+    tango_path = os.path.abspath('./aggregation/Tango.exe')
     tango_dir = os.path.dirname(tango_path)
     os.chdir(tango_dir)
 
@@ -210,7 +205,7 @@ def AggTango(mutations, seq_base, seq_name, inPath, outPath, output_csv_fname):
     df_ref = df_agg[df_agg['is_ref']].drop(columns='is_ref')
     df_agg = df_agg.drop(columns='is_ref')
     if len(df_ref) > 0:
-        df_agg[[col + '_vs_ref' for col in df_agg_cols[1:]]] = df_agg.iloc[:, 1:] - df_ref.iloc[:, 1:]
+        df_agg[[col + '_vs_ref' for col in df_agg_cols[1:]]] = df_agg.iloc[:, 1:].to_numpy() - df_ref.iloc[0, 1:].to_numpy().reshape(1,-1)
 
     # save final dataframe
     final_path = os.path.join(outPath, f"{output_csv_fname}_tango.csv")
@@ -219,58 +214,32 @@ def AggTango(mutations, seq_base, seq_name, inPath, outPath, output_csv_fname):
     print('Missed sequences:', missed_seq_names)
 
 
-def main():
+def get_aggregation_features():
 
     # setup
-    waltz_or_tango = ['tango'] # ['waltz'] #
-    data_folder = address_dict['SoluProtMut'] # address_dict['ProtSolM']  # address_dict['PIPS2']
-    inPath = f'{data_folder}{aggregation_subfolder}'  # inputs to specify residues of interest to mutate
-    outPath = f'{data_folder}{aggregation_subfolder}'  # where to store the results
-    sequence_fname = 'Type III PKS pyrrolidine ketide synthase.fasta' # 'ProtSolM_test_sequences.fasta' # None # 'UPO_batch1_shortlisted2.fasta'  # 'GOh1052.fasta' #
+    waltz_or_tango = ['waltz', 'tango']
+    inPath = '../data/feature_extraction/Input/'
+    outPath = '../data/feature_extraction/'
+    sequence_fname = 'GOh1052.fasta'
 
     # specify base sequence(s)
-    # read fasta
-    if sequence_fname is not None:
-        sequence_fpath = f'{data_folder}{sequences_subfolder}{sequence_fname}'
-        seq_base, seq_name, seq_description = fetch_sequences_from_fasta(sequence_fpath)
-        # seq_name = [s[s.find('_')+1:] for s in seq_name]
-        output_csv_fname = f'AggregationScore_{sequence_fname.replace(".fasta","")}'
-    # specify base sequence here manually
-    else:
-        # seq_base = "MGSSHHHHHHSSGLVPRGSHMGTASAPIGSAIPRNNWAVTCDSAQSGNECNKAIDGNKDTFWHTFYGANGDPKPPHTYTIDMKTTQNVNGLSVLPRQDGNQNGWIGRHEVYLSSDGTNWGSPVASGSWFADSTTKYSNFETRPARYVRLVAVTEANGQPWTSIAEINVFQASSYTAPQPGLGRWGPTIDLPIVPAAAAIEPTSGRVLMWSSYRNDAAEGSPGGITLTSSWDPSTGIVSDRTVTVTKHDMFCPGISMDGNGQIVVTGGWDAKKTSLYDSSSDSWIPGPDMQVARGYQSSATMSDGRVFTIGGSFSGGVFEKNGEVYSPSSKTWTSLPNAKVNPMLTADKQGLYMSDNHAWLFGWKKGSVFQAGPSTAMNWYYTSGSGDVKSAGKRQSNRGVAPDAMCGNAVMYDAVKGKILTFGGSPDYTDSDATTNAHIITLGEPGTSPNTVFASNGLYFARTFHTSVVLPDGSTFITGGQRRGIPFEDSTPVFTPEIYVPEQDTFYKQNPNSIVRAYHSISLLLPDGRVFNGGGGLCGDCTTNHFDAQIFTPNYLYDSNGNLATRPKITRTSTQSVKVGGRITISTDSSITKASLIRYGTATHTVNTDQRRIPLTLTNNGGNSYSFQVPSDSGVALPGYWMLFVMNSAGVPSVASTIRVTQAAA"
-        # seq_name = 'GOh1052'
-        seq_base = 'MKLTLLLSAVFSGAVATLAETSEWSPPESGDARSPCPLLNSLANHGYLPHDGKNITGDVLSKAITTTLNMDDSVSAAFMAALRNSITTAETFSLDELNKHNGIEHDASLSRQDFYFGNVQAFNETIFNQTRSYWTDPVTIDIHQAANARNARIETSKATNPTYNETAVNRASALETAAYILSFGDKVTGSVPKAFVEYFFENERLPFHLGWYKSAESISFADFQNMSTRVSQAGSQSPRAIEL'
-        # seq_base = 'MGSSHHHHHHSSGLVPRGSHMETSEWSPPESGDARSPCPLLNSLANHGYLPHDGKNITGDVLSKAITTTLNMDDSVSAAFMAALRNSITTAETFSLDELNKHNGIEHDASLSRQDFYFGNVQAFNETIFNQTRSYWTDPVTIDIHQAANARNARIETSKATNPTYNETAVNRASALETAAYILSFGDKVTGSVPKAFVEYFFENERLPFHLGWYKSAESISFADFQNMSTRVSQAGSQSPRAIEL'
-        seq_name = 'ET096' # 'ET096_HisThrombin'
-        output_csv_fname = f'AggregationScore_{seq_name}'
+    sequence_fpath = '../data/sequences/' + sequence_fname
+    seq_base, seq_name, seq_description = fetch_sequences_from_fasta(sequence_fpath)
+    output_csv_fname = f'AggregationScore_{sequence_fname.replace(".fasta","")}'
 
-    # specify positions to mutate, if any
-    mutatePos = None # [aa+str(i+1) for i,aa in enumerate(seq_base)] #  'DomainPos_GOh1052'  # csv file specifying wt residues of interest to mutate; OR list of residue positions to mutate OR None
-    pos_colname = None # 'Domain I'
-    
-    # get mutations to run on
-    if mutatePos is None:
-        mutations = None
-    else:
-        if isinstance(mutatePos, str):
-            df = pd.read_csv(inPath + f"{mutatePos}.csv")
-            wildtype_list = list(df[pos_colname].dropna())[:]
-        elif isinstance(mutatePos, list):
-            wildtype_list = mutatePos
-        mutations = [None] + get_mutations(wildtype_list)
-        if isinstance(seq_base, list):
-            seq_base = seq_base[0]
-        if isinstance(seq_name, list):
-            seq_name = seq_name[0]
+    # get mutations
+    seq_base = seq_base[0]
+    seq_name = seq_name[0]
+    mutatePos = [aa+str(i+1) for i,aa in enumerate(seq_base)]
+    mutations = [None] + get_mutations(mutatePos)
 
-    # run aggregation prediction program
-    ## WALTZ
+    ## RUN WALTZ ##
     if 'waltz' in waltz_or_tango:
         AggWaltz(mutations, seq_base, seq_name, inPath, outPath, output_csv_fname)
-    ## TANGO
+    ## RUN TANGO ##
     if 'tango' in waltz_or_tango:
         AggTango(mutations, seq_base, seq_name, inPath, outPath, output_csv_fname)
 
 
 if __name__ == '__main__':
-    main()
+    get_aggregation_features()

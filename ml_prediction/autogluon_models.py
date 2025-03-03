@@ -56,6 +56,8 @@ def get_leaderboard_metrics(data, label, predictor, leaderboard, metrics, train_
 def autogluon_classifier(train_data, test_data, label, metrics, save_model=None, load_model=None, model_settings={}, num_bag_folds=None, num_stack_levels=None):
     from autogluon.tabular import TabularPredictor
 
+    res_cols = ['model'] + metrics
+
     if 'excluded_model_types' in model_settings:
         excluded_model_types = model_settings['excluded_model_types']
     else:
@@ -108,9 +110,8 @@ def autogluon_classifier(train_data, test_data, label, metrics, save_model=None,
             test_leaderboard_filt = test_leaderboard_filt[~test_leaderboard_filt.model.str.contains(model_to_exclude)]
         # order test leaderboard by val score
         test_leaderboard_filt = test_leaderboard_filt.sort_values(by='score_val', ascending=False)
-        print(test_leaderboard_filt)
+        print(test_leaderboard_filt[[c for c in res_cols if c in test_leaderboard_filt]+['score_val']])
 
-    res_cols = ['model'] + metrics
     res = {
         'train': train_leaderboard_filt[[c for c in res_cols if c in train_leaderboard_filt]],
         'test': test_leaderboard_filt[[c for c in res_cols if c in test_leaderboard_filt]] if test_data is not None else None

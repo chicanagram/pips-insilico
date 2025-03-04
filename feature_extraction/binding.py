@@ -230,8 +230,6 @@ def mutate_residue(
         csv_txt_avg, log_fpath_full, write_mode = save_dict_as_csv(res, res_all_cols, log_fpath, csv_suffix='_FULL')
         print('Saved FULL results for ' + struct + mutant + ' to CSV (mode=' + write_mode + '):', log_fpath_full)
 
-    return log_fpath_avg, log_fpath_full
-
 
 def get_yasara_binding_features():
     # set inputs and parameters
@@ -250,16 +248,10 @@ def get_yasara_binding_features():
     proc_num = 0
     for i, mutation in enumerate(mutations):
         mutstr, mutation = get_mutstr(mutation)
-        log_fpath_avg, log_fpath_full = mutate_residue(mutation, struct_fname, struct_dir, output_dir, move='!backbone', minimize_energy=True, resetSce=False, nrep=nrep)
+        mutate_residue(mutation, struct_fname, struct_dir, output_dir, move='!backbone', minimize_energy=True, resetSce=False, nrep=nrep)
         proc_num += 1
     yasara_pid = findProcess(yasara_process_name)[-1]
     exit_program(yasara_pid)
-
-    # # combine files spawned
-    # _ = combine_csv_files(log_fpath_list, output_dir, output_fname)
-    # print('Saved all AVG results as CSV:' + output_dir + output_fname + '.csv')
-    # _ = combine_csv_files(log_fpath_list_FULL, output_dir, output_fname + '_FULL')
-    # print('Saved all FULL results as CSV:' + output_dir + output_fname + '_FULL' + '.csv')
 
 if __name__ == "__main__":
     get_yasara_binding_features()

@@ -35,6 +35,7 @@ def parseArgs():
         traceback.print_exc()
 
     return parser.parse_args()
+
 def readFasta(msa_fname, mydesc):
     """Read fasta msa_fname of MSA"""
     myid = ""
@@ -55,6 +56,7 @@ def readFasta(msa_fname, mydesc):
                 line = ''.join([c for c in line if c.isalpha() or c in "-."])
                 myseqs[myid] += line.upper()
     return myseqs
+
 def getAlnLen(myseqs):
     alnlen = 0
     for seq in myseqs.values():
@@ -86,6 +88,7 @@ def calculate_shannon_entropy(
         shantropy[i] = np.sum(probs_i_nonzero*np.log(probs_i_nonzero) / np.log(2))
     shantropy += np.log(AAcount)/np.log(2)
     return shantropy, probs
+
 def alfa2cons(msa_fpath, output_fpath, save_csv=False):
     myseqs = readFasta(msa_fpath, 0)
     alnlen = getAlnLen(myseqs)

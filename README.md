@@ -117,6 +117,6 @@ Finally, feature importances for the multimodal models may be obtained using Aut
 ```
 python get_feature_importance.py
 ```
-The model analysed may be specified by modify8ing the **'model_name'** variable the script. 
+The model analysed may be specified by modifying the **'model_name'** variable the script. 
 It is currently set to output feature importances for the 'WeightedEnsemble_L3' model saved in the **data > trained_models > GOh1052** subdirectory, the model trained with the best performance. 
 

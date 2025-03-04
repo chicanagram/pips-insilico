@@ -48,18 +48,18 @@ python train.py
 ``` 
 Results will be by default logged in the folder: examples > Output. 
 
-The dataset filename or location be specified with the flags '-f' and '--data_folder', respectively. E.g. suppose the new base filename is 'GOh1030', and the new relative location is '../datasets/', run the command:
+The dataset filename or location can be specified with the flags '-f' and '--data_folder', respectively. E.g. suppose the new base filename is 'GOh1030', and the new relative location is '../datasets/', run the command:
 ```
-python train.py -f GOh1030mut --data_folder ../datasets/
+python train.py -f GOh1030 --data_folder ../datasets/
 ```
 To view all the arguments that can be specified, run: 
 ```
 python train.py -h
 ```
-These include 'num_bag_folds' (default=8), 'num_stack_levels' (default=1), 'save_model' etc. By default, the trained models will be saved at: data > ml_prediction > trained_models > <filename base>.
+These include 'num_bag_folds' (default=8), 'num_stack_levels' (default=1), 'save_model' etc. By default, the trained models will be saved at: **data > ml_prediction > trained_models > <filename_base>**.
 
 ### Test
-To perform testing (e.g. on the GOh1052mut.csv dataset), run the following command:
+To perform testing (e.g. on the GOh1052.csv dataset), run the following command:
 ```
 python test.py
 ``` 

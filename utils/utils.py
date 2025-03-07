@@ -11,6 +11,7 @@ try:
 except ImportError as e:
     pandas_imported = False
 import os
+import numpy as np
 import platform
 opsys = platform.system()
 

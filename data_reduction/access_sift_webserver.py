@@ -8,6 +8,7 @@ Created on Tue Aug  6 17:28:26 2024
 
 def main(argv=None):
     """Fill out SIFT webserver"""
+    import os
     from selenium import webdriver
     from selenium.webdriver.chrome.service import Service
     from selenium.webdriver.common.by import By

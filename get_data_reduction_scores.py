@@ -106,11 +106,11 @@ def main():
         _, ref_seq, ref_seq_idxs = get_ref_seq_idxs_aa_from_msa('./data/msa/'+msa_fname+'.fasta', ref_seq_name)
 
     # run ShanEntropy
-    ShanEntropy(msa_fname, output_fname, ref_seq_idxs, ref_seq, position_offset)
+    # ShanEntropy(msa_fname, output_fname, ref_seq_idxs, ref_seq, position_offset)
     # run SIFT
     SIFT(msa_fname, output_fname, ref_seq_name, position_offset)
     # run YASARA distance calculation
-    DistResSub(sce_fname, output_fname, position_offset)
+    # DistResSub(sce_fname, output_fname, position_offset)
 
 if __name__ == "__main__":
     main()
